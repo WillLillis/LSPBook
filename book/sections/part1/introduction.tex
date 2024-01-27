@@ -1,0 +1,53 @@
+\subsection{Introduction}
+
+I started my programming journey much later than a lot of my peers.
+Coding was some scary topic better left to child prodigies and other geniuses, so why even both I reasoned. 
+Nevertheless, following my first year of undergrad I landed an internship with my school's Physics department.
+Little did I know the internship was about 1\% physics, and 99\% learning C++. My professor worked in low-energy nuclear physics, and his group's experiments generated large amounts of data that needed to be processed.
+My first introduction with ``real" coding was with C++, doing large-scale analysis. I spent my summer switching between online documentation and gedit,
+the text editor he showed me on my first day. Following this internship, I started to 
+Little did I know, the internship was actually writing C++ code to perform analysis onlarge amounts of dataI was intimidated by the 
+
+Eventually a friend took pity on me and pointed me out to Visual Studio. I cannot understate how mindblowing things like autocomplete, jump to definition, and intelligent syntax highlighting was to me after months of default Notepad++.
+I wondered how these features worked, but understanding seemed beyond my grasp. If I'm struggling to even write code, then code that can understand other code has to be on some elevated plane of complexity.
+
+Eventually I stumbled upon The Primeagen by accident on YouTube one day. This man fundamentally changed my outlook on CS. 
+After months of listening to him shill for Neovim and Rust, I decided to spend a summer learning the language and editor.
+These things scared me, but I had finally gotten over this fear and just decided to try my best and see where I got. 
+
+I \textit{cannot} understate what a great decision this was. Coding has never been more fun. 
+After reading through the Rust book, I set out to complete the 2021 Advent of Code calendar. 
+Working through those exercises (and sometimes referring to Reddit for help), I slowly figured things out.
+
+After a few weeks, I was comfortable enough to start making small modifications to the Lua configuration
+I had copied from Prime's setup video. 
+
+
+% Got assembly book
+I eventually stumbled onto asm-lsp, an open-source assembly LSP written in Rust.
+The project had hover support for instructions, but that was about it. I found a small \texttt{TODO} comment
+in the source code, and after an hour of reading through the code, I thought I had an idea of how to solve the
+problem. I opened a PR, and to my surprise it was accepted. I started digging into the code a bit more, and
+found another thing to fix. And then I found a feature to add. And then another. And another. Over the course
+of a few months, I got very comfortable with the LSP's code, and in turn also found myself fairly 
+comfortable with the LSP protocol. Working on the project had demysitified the ``magic" code that understood code,
+and I found myself enjoying the rabbit hole I had unwitteningly dived down.
+
+This learning journey was incredibly valuable to me, and I'd like to help others 
+discover this magic. 
+
+
+
+\subsection{What is this book?}
+
+This book walks you through building an LSP server for x86-64 assembly. 
+
+``Why Assembly? Nobody actually codes in that anymore." 
+
+Fair enough, almost nobody actually hand rolls assembly anymore. Those damned compiler people have done
+too good of a job! But in all seriousness, I've chosen assembly for its \textit{simplicity}. Assembly is simple
+enough that the majority of one's effort can be spent learning the main item, LSPs! Assembly's flat structure
+makes things just simple enough so that lots of features can be doable without weeks of studying a specific
+language's features. The alternative is to use a toy language, which in my opinion sucks all the fun out. 
+
+\subsection{Suspendisse potenti}
