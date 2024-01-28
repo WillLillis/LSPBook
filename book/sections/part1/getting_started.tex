@@ -1,12 +1,38 @@
-% Setup
-    % Include instructions for major text editors
-    % Neovim
-    % Sublime-> This may be best...
-    % Vscode????
-
 % Introduce book's git repo
 % Basic LSP template
+All of the finished code for each chapter can be found at \URL. With that being said,
+let's get started! As with nearly any other Rust project, we can start by creating a new
+project with cargo: \texttt{cargo new assembly-lsp}. We'll add some dependencies next:
 
+\begin{itemize}
+    \item \texttt{cargo add STUFF}
+\end{itemize}
+
+Now that the scaffolding is in place, we can finally get to coding. A great template 
+can be found in the rust-analyzer (the absolutely excellent Rust LSP) 
+\href{https://github.com/rust-lang/rust-analyzer/tree/master/lib/lsp-server}{repo}. 
+Their example starts out with some code for the go to definition capability. We'll 
+get there eventually, but our starting point is different. Here's the stripped down code:
+
+ %TODO FIND a good way to present code here
+
+\begin{lstlisting}[language=rust]
+    use std::error::Error;
+
+    use lsp_types::OneOf;
+    use lsp_types::{
+        request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
+    };
+
+    use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
+\end{lstlisting}
+
+
+ % Setup
+ % Include instructions for major text editors
+ % Neovim
+ % Sublime-> This may be best...
+ % Vscode????
 
 % Reading data in from xml
 % Hover support
