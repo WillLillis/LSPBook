@@ -2,10 +2,44 @@
 % Basic LSP template
 All of the finished code for each chapter can be found at \URL. With that being said,
 let's get started! As with nearly any other Rust project, we can start by creating a new
-project with cargo: \texttt{cargo new assembly-lsp}. We'll add some dependencies next:
+project with cargo: \texttt{cargo new assembly-lsp}. We'll add some dependencies
+next. 
 
 \begin{itemize}
-    \item \texttt{cargo add STUFF}
+    \item \texttt{cargo add crossbeam-channel}
+        \begin{itemize}
+            \item Handles sending and receiving data across channels so our LSP server
+                can talk to our editor's LSP client
+        \end{itemize}
+    \item \texttt{cargo add flexi\_logger}
+        \begin{itemize}
+            \item Allows for some easy structured logging over \texttt{stderr}.
+        \end{itemize}
+    \item \texttt{cargo add log}
+        \begin{itemize}
+            \item Another logging crate we'll use
+        \end{itemize}
+    \item \texttt{cargo add lsp-server}
+        \begin{itemize}
+            \item Handles the majority of LSP-related things for us. This crates
+                lets us focus on features, rather than implementing a spec.
+        \end{itemize}
+    \item \texttt{cargo add lsp-types}
+        \begin{itemize}
+            \item The LSP spec includes a fair number of type defitinitions, which
+                are (unfortunately) in Typescript. This crate provides Rust versions
+                of the spec's types that adhere to the spec.
+        \end{itemize}
+    \item \texttt{cargo add serde --features derive}
+        \begin{itemize}
+            \item This amazing crate is part of nearly every Rust project, including
+                ours too.
+        \end{itemize}
+    \item \texttt{cargo add serde\_json}
+        \begin{itemize}
+            \item LSP servers and clients communicate over JSON RPC. Naturally this
+                crate will be of use.
+        \end{itemize}
 \end{itemize}
 
 Now that the scaffolding is in place, we can finally get to coding. A great template 
@@ -14,18 +48,73 @@ can be found in the rust-analyzer (the absolutely excellent Rust LSP)
 Their example starts out with some code for the go to definition capability. We'll 
 get there eventually, but our starting point is different. Here's the stripped down code:
 
- %TODO FIND a good way to present code here
-
 \begin{lstlisting}[language=rust]
-    use std::error::Error;
+use log::{error, info};
+use lsp_server::{Connection, ExtractError, Message, Request, RequestId};
+use lsp_types::{InitializeParams, ServerCapabilities};
 
-    use lsp_types::OneOf;
-    use lsp_types::{
-        request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
-    };
+fn main() -> anyhow::Result<()> {
+    // Set up logging. Because `stdio_transport` gets a lock on stdout and stdin, we must have our
+    // logging only write out to stderr.
+    flexi_logger::Logger::try_with_str("info")?.start()?;
 
-    use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
+    info!("Starting assembly-lsp");
+
+    // Create the transport. Includes the stdio (stdin and stdout) versions but this could
+    // also be implemented to use sockets or HTTP.
+    let (connection, io_threads) = Connection::stdio();
+
+    // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
+    let server_capabilities = serde_json::to_value(&ServerCapabilities {
+        ..Default::default()
+    })
+    .unwrap();
+
+    let initialization_params = connection.initialize(server_capabilities)?;
+
+    main_loop(connection, initialization_params)?;
+    io_threads.join()?;
+
+    // Shut down gracefully.
+    error!("Shutting down assembly-lsp");
+    Ok(())
+}
+
+fn main_loop(connection: Connection, params: serde_json::Value) -> anyhow::Result<()> {
+    let _params: InitializeParams = serde_json::from_value(params).unwrap();
+    eprintln!("starting example main loop");
+    for msg in &connection.receiver {
+        eprintln!("got msg: {msg:?}");
+        match msg {
+            Message::Request(req) => {
+                if connection.handle_shutdown(&req)? {
+                    return Ok(());
+                }
+                error!("Got request: {req:?}");
+            }
+            Message::Response(resp) => {
+                error!("Got response: {resp:?}");
+            }
+            Message::Notification(notif) => {
+                error!("Got notification: {notif:?}");
+            }
+        }
+    }
+    Ok(())
+}
+
+fn cast_req<R>(req: Request) -> Result<(RequestId, R::Params), ExtractError<Request>>
+where
+    R: lsp_types::request::Request,
+    R::Params: serde::de::DeserializeOwned,
+{
+    req.extract(R::METHOD)
+}
 \end{lstlisting}
+
+There's a bit to unpack here, let's start from the top. The first thing we do is
+set up our logging. As the LSP protocol uses \texttt{stdout} for client-server communication,
+we configure our logger to use \texttt{stderr}.
 
 
  % Setup

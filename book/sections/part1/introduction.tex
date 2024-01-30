@@ -48,6 +48,19 @@ Fair enough, almost nobody actually hand rolls assembly anymore. Those damned co
 too good of a job! But in all seriousness, I've chosen assembly for its \textit{simplicity}. Assembly is simple
 enough that the majority of one's effort can be spent learning the main item, LSPs! Assembly's flat structure
 makes things just simple enough so that lots of features can be doable without weeks of studying a specific
-language's features. The alternative is to use a toy language, which in my opinion sucks all the fun out. 
+language's features. The obvious alternative is to use a toy language, which in my opinion sucks all the fun out. 
 
-\subsection{Suspendisse potenti}
+We'll start with some general LSP information and project setup. While I won't skip
+any steps, I'll do my best to speed through the non-LSP parts to keep things interesting.
+While I'm sure there's lots to be learned about things like XML parsing, serialization, 
+and deserialization, I'm not the right person and this isn't the right book. After
+these initial steps, we'll have a working program that can connect to an LSP client,
+load some relevant information from the disk...and that's about it. But don't despair!
+The very next thing on our list is to add hover support for instructions and registers.
+After this feature is in place, we'll sidetrack briefly to add some configuration
+options for our users (of which there will be many thousands, so we can also practice
+asking the product manager ``but how will this scale?"). Next we'll add autocomplete!
+
+Doing so will require a couple different steps, but this is when things truly start
+to get fun. When I first added autocomplete to asm-lsp, things really started to
+click. After autocomplete, we'll add a bunch of cool (but relatively siloed) capabilities.
