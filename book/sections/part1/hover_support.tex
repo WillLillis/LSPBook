@@ -1,0 +1,39 @@
+The time is now! We're finally adding a real feature to our LSP! We'll start by
+adding hover support for instructions. A few things need to happen first though,
+before we see that sweet sweet hover documentation window. First we need some 
+source of information for our instructions. This source needs to be in a fairly
+organized, regular format fit for parsing. After finding such a source, we then
+need to write some code to parse and load it into our program. This will require
+some parsing code (duh), as well as some data structures to represent our information
+once it's loaded from disk. Finally, we need to trigger every time a hover request
+comes in from the client, check our relevant data structures, and return any results
+we find in the right format. Without further ado, let's get started.
+
+\subsection{Finding an Information Source}
+
+
+\subsection{Data Structures and Parsing}
+
+
+\subsection{Hover Requests}
+
+
+
+\subsection{Cleanup}
+
+% Motivate having info
+
+% Introduce the instruction info repo
+
+% Introduce the register xml files from asm-lsp
+
+% Sketch out structs for instructions and registers
+
+% Quickly go over xml parsing functions
+
+% Put in start up code
+
+% Walk through the hover request/ response interaction in detail
+    % go to spec
+    % sketch out according code
+    % Make improvements

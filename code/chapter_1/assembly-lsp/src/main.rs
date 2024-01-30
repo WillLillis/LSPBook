@@ -1,4 +1,4 @@
-use log::{error, info};
+use log::info;
 use lsp_server::{Connection, ExtractError, Message, Request, RequestId};
 use lsp_types::{InitializeParams, ServerCapabilities};
 
@@ -25,13 +25,13 @@ fn main() -> anyhow::Result<()> {
     io_threads.join()?;
 
     // Shut down gracefully.
-    error!("Shutting down assembly-lsp");
+    info!("Shutting down assembly-lsp");
     Ok(())
 }
 
 fn main_loop(connection: Connection, params: serde_json::Value) -> anyhow::Result<()> {
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
-    eprintln!("starting example main loop");
+    info!("Entering main loop");
     for msg in &connection.receiver {
         eprintln!("got msg: {msg:?}");
         match msg {
@@ -39,13 +39,13 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> anyhow::Resul
                 if connection.handle_shutdown(&req)? {
                     return Ok(());
                 }
-                error!("Got request: {req:?}");
+                info!("Got request: {req:?}");
             }
             Message::Response(resp) => {
-                error!("Got response: {resp:?}");
+                info!("Got response: {resp:?}");
             }
             Message::Notification(notif) => {
-                error!("Got notification: {notif:?}");
+                info!("Got notification: {notif:?}");
             }
         }
     }
