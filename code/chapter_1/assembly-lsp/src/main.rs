@@ -19,6 +19,7 @@ fn main() -> anyhow::Result<()> {
     })
     .unwrap();
 
+    // Issue initialize request and get client abilities
     let initialization_params = connection.initialize(server_capabilities)?;
 
     main_loop(connection, initialization_params)?;
@@ -49,6 +50,7 @@ fn main_loop(connection: Connection, params: serde_json::Value) -> anyhow::Resul
             }
         }
     }
+
     Ok(())
 }
 
