@@ -48,3 +48,54 @@
     stringstyle=\color{GreenString},
     string=[b]"
 }
+
+
+\definecolor{GrayCodeBlock}{RGB}{241,241,241}
+\definecolor{BlackText}{RGB}{110,107,94}
+\definecolor{RedRegister}{RGB}{182,86,17}
+\definecolor{BlueDirective}{RGB}{30,144,255}
+\definecolor{GreenString}{RGB}{96,172,57}
+\definecolor{PurpleInstruction}{RGB}{184,84,212}
+\definecolor{GrayComment}{RGB}{170,170,170}
+\definecolor{GoldDocumentation}{RGB}{180,165,45}
+% TODO: Figure out colors for different classes
+% TODO: Make color class for constants, 
+\lstdefinelanguage{gas}
+{
+    columns=fullflexible,
+    keepspaces=true,
+    frame=single,
+    framesep=0pt,
+    framerule=0pt,
+    framexleftmargin=4pt,
+    framexrightmargin=4pt,
+    framextopmargin=5pt,
+    framexbottommargin=3pt,
+    xleftmargin=4pt,
+    xrightmargin=4pt,
+    backgroundcolor=\color{GrayCodeBlock},
+    basicstyle=\ttfamily\color{BlackText},
+    % instructions
+    keywords={
+        mov, push, pop, add, sub, jmp, je, jne, cmp, call, ret,
+        syscall, xor
+    },
+    keywordstyle=\color{PurpleInstruction},
+    % registers
+    ndkeywords={
+        \%, rax, rbx, rcx, rdx, rsi, rdi, rsp, rbp, rip,
+        xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,
+        section, global, extern, text, \_start, equ, db, 
+        dw, dd, dq
+    },
+    keywordstyle=[2]\color{RedRegister},
+    keywords=[3]{
+        STDOUT
+    },
+    keywordstyle=[3]\color{BlueDirective},
+    comment=[l][\color{GrayComment}\slshape]{;},
+    morecomment=[l][\color{GrayComment}\slshape]{\#},
+    morecomment=[s][\color{GrayComment}\slshape]{/*}{*/},
+    stringstyle=\color{GreenString},
+    string=[b]"
+}

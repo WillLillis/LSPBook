@@ -30,16 +30,16 @@ I had finally gotten over this fear and just decided to try my best and see wher
 I ended up. 
 
 I \textit{cannot} understate what a great decision this was. Coding has never been
-more fun. After reading through the Rust book, I set out to complete the 2021 Advent
+more fun. After reading through the Rust book, I set out to complete the 2022 Advent
 of Code calendar.  Working through those exercises (and sometimes referring to Reddit
 for help), I slowly figured things out. After a few weeks, I was comfortable enough
 to start making small modifications to the Lua configuration I had copied from 
 Prime's setup video. I finished Advent of Code, and started looking for a larger
 project to work on.
 
-I eventually stumbled onto \href{asm-lsp}{https://github.com/bergercookie/asm-lsp},
+I eventually stumbled onto \href{https://github.com/bergercookie/asm-lsp}{asm-lsp},
 an open-source assembly LSP written in Rust. The project had hover support for instructions,
-but that was about it. I found a small \texttt{TODO} comment in the source code,
+but that was about it. I found a small \texttt{// TODO} comment in the source code,
 and decide to take a look. After an hour of hopping around the project with the help
 of the Rust LSP, I thought I had an idea of how to solve the problem. I opened a
 pull request, and to my surprise it was accepted. I started digging into the code a bit more,
@@ -55,26 +55,84 @@ discover this magic.
 \subsection{What is this book?}
 
 As the title suggests, this book walks you through building an LSP server for x86-64
-assembly. It won't be the best LSP server, it won't be <TODO>
+assembly. It won't be the most complete LSP server, it won't be the cleanest, but it
+will be \textit{yours}. We'll start with a basic scaffold and build up from there.
+So anyways, onto the burning question:
 
 ``Why Assembly? Nobody actually codes in that anymore." 
 
-Fair enough, almost nobody actually hand rolls assembly anymore. Those damned compiler people have done
-too good of a job! But in all seriousness, I've chosen assembly for its \textit{simplicity}. Assembly is simple
-enough that the majority of one's effort can be spent learning the main item, LSPs! Assembly's flat structure
-makes things just simple enough so that lots of features can be doable without weeks of studying a specific
-language's features. The obvious alternative is to use a toy language, which in my opinion sucks all the fun out. 
+Fair enough, almost nobody actually hand rolls assembly anymore. Those damned compiler
+people have done too good of a job! (If you're interested in compilers though, I 
+can't reccomend Thorsten Ball's \href{https://interpreterbook.com}{``Writing an 
+Interpreter in Go"} and \href{https://compilerbook.com}{``Writing a Compiler in 
+Go"} enough. Both are incredibly well done and helped motivate me to write this 
+book.) But in all seriousness, I've chosen assembly for its \textit{simplicity}.
+Assembly is simple enough that the majority of one's effort can be spent learning
+the main item, LSPs! Assembly's flat structure makes things just simple enough 
+so that lots of features can be doable without weeks of studying a specific language's
+features. The obvious alternative is to use a toy language, which in my opinion
+sucks all the fun out. Building things for the sake of building is great, but creating
+something useful along the way is better! All you really have to know is that there 
+are instructions and registers. Instructions tell the computer to do something and
+typically take 0 to 2 arguments. Registers are like tiny variables for the CPU.
+They vary in size, usually a nice power of 2 from 16 bits and up. Finally there
+are assembler directives, which basically just tell the assembler to do something,
+but aren't translated to machine code like instructions are. To be more concrete,
+here's a simple hello world program written for the GNU Assembler (GAS).
+
+\begin{lstlisting}[language=gas]
+# gcc -nostdlib -nostartfiles -nodefaultlibs -static hello_lsp.s -o hello_lsp && ./hello_lsp
+
+.data
+
+.equ    SYSCALL_WRITE, 1
+.equ    SYSCALL_EXIT, 60
+.equ    STDOUT, 1
+.equ    EXIT_SUCCESS, 0 
+
+message:
+    .asciz "Hello, LSP!\n" # Our message to print
+
+.equ MSG_LEN, . - message # The length of our message
+
+.global _start
+
+.text
+
+_start:
+    # write (1, msg, len(msg))
+    mov $SYSCALL_WRITE, %rax
+    mov $STDOUT, %rdi
+    mov $message, %rsi
+    mov $MSG_LEN, %rdx
+    syscall
+
+    # exit(0)
+    mov $SYSCALL_EXIT, %rax
+    xor %rdi, %rdi
+    syscall   
+\end{lstlisting}
+
+Without going into too much detail, the \texttt{.data} directive simply tells the
+assembler to assemble the following statements into a data subsection. Underneath
+that, \texttt{.equ} works essentially the same as the C preprocessor's \texttt{\#define}.
+Finally \texttt{.asciz} creates a null terminated C string. We then grab the length
+of the message. Some data gets moved around so we can make the \texttt{write} and
+\texttt{exit} system calls, and that's about it! The specifics can vary depending
+on architecture and assembler you're using, but most assembly is fairly similar
+in structure. 
 
 We'll start with some general LSP information and project setup. While I won't skip
 any steps, I'll do my best to speed through the non-LSP parts to keep things interesting.
-While I'm sure there's lots to be learned about things like XML parsing, serialization, 
-and deserialization, I'm not the right person and this isn't the right book. After
-these initial steps, we'll have a working program that can connect to an LSP client,
-load some relevant information from the disk...and that's about it. But don't despair!
-The very next thing on our list is to add hover support for instructions and registers.
-After this feature is in place, we'll sidetrack briefly to add some configuration
-options for our users (of which there will be many thousands, so we can also practice
-asking the product manager ``but how will this scale?"). Next we'll add autocomplete!
+While there's lots to be learned about things like XML parsing, serialization,
+deserialization, and JSON RPC, I'm not the right person and this isn't the right 
+book to teach those things. After these initial steps, we'll have a working program
+that can connect to an LSP client, load some relevant information from the disk...and 
+that's about it. But don't despair! The very next thing on our list is to add hover
+support for instructions and registers. After this feature is in place, we'll sidetrack
+briefly to add some configuration options for our users (of which there will be many
+thousands, so we can also practice asking the product manager ``but how will this
+scale?"). Next we'll add autocomplete!
 
 Doing so will require a couple different steps, but this is when things truly start
 to get fun. When I first added autocomplete to asm-lsp, things really started to
