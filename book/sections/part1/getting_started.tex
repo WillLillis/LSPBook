@@ -1,5 +1,5 @@
-All of the finished code for each chapter can be found at \href{\URL}{\URL}. With that being said,
-let's get started!
+All of the finished code for each chapter can be found in the \href{\URL}{book's repo}. 
+With that being said, let's get started!
 
 \subsection{Dependencies}
 
@@ -22,7 +22,7 @@ cargo: \texttt{cargo new assembly-lsp}. We'll add some dependencies next:
 	      \end{itemize}
 	\item \texttt{cargo add lsp-server}
 	      \begin{itemize}
-		      \item Handles the majority of LSP-related things for us. This crates
+		      \item Handles the majority of LSP-related things for us. This crate
 		            lets us focus on features, rather than implementing a spec.
 	      \end{itemize}
 	\item \texttt{cargo add lsp-types}
@@ -191,6 +191,8 @@ Content-Length: 54
 
 All of this together:
 
+%\lstset{escapeinside={<@}{@>}}
+%<@\textcolor{COLOR}{TEXT}@>
 \begin{lstlisting}[language=bash]
 $ sed -u -re 's/^(.*)$/\1\r/' | cargo run
 

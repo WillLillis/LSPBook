@@ -52,7 +52,8 @@
 
 \definecolor{GrayCodeBlock}{RGB}{241,241,241}
 \definecolor{BlackText}{RGB}{110,107,94}
-\definecolor{RedRegister}{RGB}{182,86,17}
+\definecolor{OrangeRegister}{RGB}{255,111,0}
+\definecolor{RedUserLabel}{RGB}{255,0,0}
 \definecolor{BlueDirective}{RGB}{30,144,255}
 \definecolor{GreenString}{RGB}{96,172,57}
 \definecolor{PurpleInstruction}{RGB}{184,84,212}
@@ -85,14 +86,19 @@
     ndkeywords={
         \%, rax, rbx, rcx, rdx, rsi, rdi, rsp, rbp, rip,
         xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,
-        section, global, extern, text, \_start, equ, db, 
-        dw, dd, dq
+        \_start, db, dw, dd, dq
     },
-    keywordstyle=[2]\color{RedRegister},
+    keywordstyle=[2]\color{OrangeRegister},
     keywords=[3]{
-        STDOUT
+        data, equ, asciz, global, text
     },
     keywordstyle=[3]\color{BlueDirective},
+    keywords=[4]{
+        SYSCALL\_WRITE, SYSCALL\_EXIT, STDOUT, EXIT\_SUCCESS,
+        MSG\_LEN, message, \$SYSCALL\_WRITE, \$SYSCALL\_EXIT, 
+        \$STDOUT, \$EXIT\_SUCCESS, \$MSG\_LEN, \$message
+    },
+    keywordstyle=[4]\color{RedUserLabel},
     comment=[l][\color{GrayComment}\slshape]{;},
     morecomment=[l][\color{GrayComment}\slshape]{\#},
     morecomment=[s][\color{GrayComment}\slshape]{/*}{*/},
