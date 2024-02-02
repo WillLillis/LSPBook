@@ -11,8 +11,275 @@ we find in the right format. Without further ado, let's get started.
 
 \subsection{Finding an Information Source}
 
+The first thing we need is find some kind of data source for the x86\_64 instructions.
+It should be well organized, reasonably convertible to some in-memory data structure,
+and hopefully actively maintained (many active assembly languages receive regular
+updates). Lucky for us, such a data source already exists! The open source 
+\href{https://github.com/Maratyszcza/Opcodes}{Opcodes} repo conveniently has both
+the x86 and x86\_64 instruction sets in an xml file. Let's pull the appropriate
+file into our project:
+
+\begin{lstlisting}[language=bash]
+mkdir opcodes && cd opcodes
+curl https://github.com/Maratyszcza/Opcodes/blob/master/opcodes/x86.xml --output x86.xml
+\end{lstlisting}
+
+Our project should look two directories now (ignoring the \texttt{target} build 
+directory).
+
+\lstset{escapeinside={<@}{@>}}
+\begin{lstlisting}
+<@\textcolor{blue}{assembly-lsp}@>
+|--Cargo.lock
+|--Cargo.toml
+|--<@\textcolor{blue}{opcodes}@>
+|  |--x86.xml
+|--<@\textcolor{blue}{src}@>
+   |--main.rs
+\end{lstlisting}
+
+Let's take a look inside that new file! 
+
+\begin{lstlisting}[language=xml]
+<?xml version='1.0' encoding='utf-8'?>
+<InstructionSet name="x86">
+  <Instruction name="AAA" summary="ASCII Adjust After Addition">
+    <InstructionForm gas-name="aaa" go-name="AAA">
+      <Encoding>
+        <Opcode byte="37"/>
+      </Encoding>
+    </InstructionForm>
+  </Instruction>
+  <Instruction name="AAD" summary="ASCII Adjust AX Before Division">
+    <InstructionForm gas-name="aad" go-name="AAD">
+      <Encoding>
+        <Opcode byte="D5"/>
+        <Opcode byte="0A"/>
+      </Encoding>
+    </InstructionForm>
+    <InstructionForm gas-name="aad" go-name="AAD">
+      <Operand type="imm8"/>
+      <Encoding>
+        <Opcode byte="D5"/>
+        <Immediate size="1" value="#0"/>
+      </Encoding>
+    </InstructionForm>
+  </Instruction>
+  <Instruction name="AADD" summary="Atomically ADD">
+  ...
+\end{lstlisting}
+
+It looks like each instruction has its name stored along with 
+a short summary. Nested inside each \texttt{<Instruction ...} there also appears
+to be one or more instruction forms for the GNU Assembler (GAS) or the Go Assembler.
+Each form has some more information included, such as the opcodes for that form,
+the different arguments it can take, etc. How are we going to represent this data
+inside our program?
 
 \subsection{Data Structures and Parsing}
+
+This calls for a new file! Let's create a new \texttt{src/instruction.rs} file and
+start writing some code. Here's a start...
+
+\begin{lstlisting}[language=rust]
+pub struct Instruction {
+    name: String,
+    summary: String,
+    ...
+}
+\end{lstlisting}
+
+Those instruction forms seem fairly important, so let's create a struct to represent
+them and then store a vector of forms inside each instruction. Given that there
+are opcode files for both x86 and x86\_64, we should probably put some kind of
+architecture information in there as well. Finally, we'll also derive some common
+methods on these to make our lives easier down the road.
+
+\begin{lstlisting}[language=rust]
+#[derive(Debug, Clone)]
+pub struct Instruction {
+    name: String,
+    summary: String,
+    arch: Option<Arch>,
+    forms: Vec<InstructionForm>,
+}
+
+#[derive(Debug, Clone)]
+pub struct InstructionForm {
+    gas_name: Option<String>,
+    go_name: Option<String>,
+    encoding: String,
+    operands: Vec<Operand>
+}
+
+#[derive(Debug, Clone)]
+pub struct Operand {
+    op_type: OperandType,
+    input: bool,
+    output: bool,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone, Copy)]
+pub enum Arch {
+    x86,
+    x86_64,
+}
+\end{lstlisting}
+
+Writing out all of the variants for the \texttt{OperandType} enum looks really
+annoying and tedious...luckily I've done it for you! For the sake of brevity,
+I'll also take this time to introduce some new crates (\texttt{cargo add strum} 
+and \texttt{cargo add strum\_macros} when you have a minutes) to our project. We'll
+use these dependencies to great effect while parsing and deserializing the \texttt{x86.xml}
+file. Some operand types conflict with Rust's naming rules for its enum variants,
+so in those cases I've changed the variant name to something reasonably close,
+and then included the \texttt{\#[strum(serialize = "<ActualOpTypeHere>")]} macro
+to make the translation possible. We'll also apply these helpers to our 
+\texttt{Arch} enum.
+
+\begin{lstlisting}[language=rust]
+use strum_macros::{AsRefStr, EnumString};
+
+...
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone, Copy, EnumString, AsRefStr)]
+pub enum Arch {
+    x86,
+    x86_64,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone, EnumString, AsRefStr)]
+pub enum OperandType {
+    #[strum(serialize = "1")]
+    _1,
+    #[strum(serialize = "3")]
+    _3,
+    imm4,
+    imm8,
+    imm16,
+    imm32,
+    imm64,
+    al,
+    cl,
+    r8,
+    r8l,
+    ax,
+    r16,
+    r16l,
+    eax,
+    r32,
+    r32l,
+    rax,
+    r64,
+    mm,
+    xmm0,
+    xmm,
+    #[strum(serialize = "xmm{k}")]
+    xmm_k,
+    #[strum(serialize = "xmm{k}{z}")]
+    xmm_k_z,
+    ymm,
+    #[strum(serialize = "ymm{k}")]
+    ymm_k,
+    #[strum(serialize = "ymm{k}{z}")]
+    ymm_k_z,
+    zmm,
+    #[strum(serialize = "zmm{k}")]
+    zmm_k,
+    #[strum(serialize = "zmm{k}{z}")]
+    zmm_k_z,
+    k,
+    #[strum(serialize = "k{k}")]
+    k_k,
+    moffs32,
+    moffs64,
+    m,
+    m8,
+    m16,
+    #[strum(serialize = "m16{k}")]
+    m16_k,
+    #[strum(serialize = "m16{k}{z}")]
+    m16_k_z,
+    m32,
+    #[strum(serialize = "m32{k}")]
+    m32_k,
+    #[strum(serialize = "m32{k}{z}")]
+    m32_k_z,
+    #[strum(serialize = "m32/m16bcst")]
+    m32_m16bcst,
+    m64,
+    #[strum(serialize = "m64{k}")]
+    m64_k,
+    #[strum(serialize = "m64{k}{z}")]
+    m64_k_z,
+    #[strum(serialize = "m64/m16bcst")]
+    m64_m16bcst,
+    m128,
+    #[strum(serialize = "m128{k}")]
+    m128_k,
+    #[strum(serialize = "m128{k}{z}")]
+    m128_k_z,
+    m256,
+    #[strum(serialize = "m256{k}")]
+    m256_k,
+    #[strum(serialize = "m256{k}{z}")]
+    m256_k_z,
+    m512,
+    #[strum(serialize = "m512{k}")]
+    m512_k,
+    #[strum(serialize = "m512{k}{z}")]
+    m512_k_z,
+    #[strum(serialize = "m64/m32bcst")]
+    m64_m32bcst,
+    #[strum(serialize = "m128/m32bcst")]
+    m128_m32bcst,
+    #[strum(serialize = "m256/m32bcst")]
+    m256_m32bcst,
+    #[strum(serialize = "m512/m32bcst")]
+    m512_m32bcst,
+    #[strum(serialize = "m128/m16bcst")]
+    m128_m16bcst,
+    #[strum(serialize = "m128/m64bcst")]
+    m128_m64bcst,
+    #[strum(serialize = "m256/m16bcst")]
+    m256_m16bcst,
+    #[strum(serialize = "m256/m64bcst")]
+    m256_m64bcst,
+    #[strum(serialize = "m512/m16bcst")]
+    m512_m16bcst,
+    #[strum(serialize = "m512/m64bcst")]
+    m512_m64bcst,
+    vm32x,
+    #[strum(serialize = "vm32x{k}")]
+    vm32x_k,
+    vm64x,
+    #[strum(serialize = "vm64x{k}")]
+    vm64xk,
+    vm32y,
+    #[strum(serialize = "vm32y{k}")]
+    vm32yk_,
+    vm64y,
+    #[strum(serialize = "vm64y{k}")]
+    vm64y_k,
+    vm32z,
+    #[strum(serialize = "vm32z{k}")]
+    vm32z_k,
+    vm64z,
+    #[strum(serialize = "vm64z{k}")]
+    vm64z_k,
+    rel8,
+    rel32,
+    #[strum(serialize = "{er}")]
+    er,
+    #[strum(serialize = "{sae}")]
+    sae,
+    sibmem,
+    tmm, 
+}
+\end{lstlisting}
 
 
 \subsection{Hover Requests}
@@ -33,7 +300,7 @@ we find in the right format. Without further ado, let's get started.
 
 % Put in start up code
 
-% Walk through the hover request/ response interaction in detail
+% Walk through the hoverrequest/ response interaction in detail
     % go to spec
     % sketch out according code
     % Make improvements
