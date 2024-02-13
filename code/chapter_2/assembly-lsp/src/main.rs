@@ -1,3 +1,4 @@
+use assembly_lsp::{instruction::Instruction, populate::{populate_instructions, populate_instructions_slow}};
 use log::info;
 use lsp_server::{Connection, ExtractError, Message, Request, RequestId};
 use lsp_types::{InitializeParams, ServerCapabilities};
@@ -21,8 +22,17 @@ fn main() -> anyhow::Result<()> {
 
     let initialization_params = connection.initialize(server_capabilities)?;
 
+    info!("Populating instruction set -> x86...");
+    let xml_conts_x86 = include_str!("../opcodes/x86.xml");
+    let x86_instructions: Vec<Instruction> = populate_instructions(xml_conts_x86)?.into();
+
     main_loop(connection, initialization_params)?;
     io_threads.join()?;
+
+    info!(
+        "Don't you dare optimize this away, compiler! {:?}",
+        x86_instructions
+    );
 
     // Shut down gracefully.
     info!("Shutting down assembly-lsp");

@@ -1,32 +1,33 @@
 use strum_macros::{AsRefStr, EnumString};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Instruction {
-    name: String,
-    summary: String,
-    arch: Option<Arch>,
-    forms: Vec<InstructionForm>,
+    pub name: String,
+    pub summary: String,
+    pub arch: Option<Arch>,
+    pub forms: Vec<InstructionForm>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct InstructionForm {
-    gas_name: Option<String>,
-    go_name: Option<String>,
-    encoding: String,
-    operands: Vec<Operand>,
+    pub gas_name: Option<String>,
+    pub go_name: Option<String>,
+    pub encoding: String,
+    pub operands: Vec<Operand>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Operand {
-    op_type: OperandType,
-    input: bool,
-    output: bool,
+    pub op_type: OperandType,
+    pub input: Option<bool>,
+    pub output: Option<bool>,
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, EnumString, AsRefStr)]
+#[derive(Debug, Clone, Copy, EnumString, AsRefStr, Default)]
 pub enum Arch {
     x86,
+    #[default]
     x86_64,
 }
 
@@ -157,5 +158,5 @@ pub enum OperandType {
     #[strum(serialize = "{sae}")]
     sae,
     sibmem,
-    tmm, 
+    tmm,
 }
