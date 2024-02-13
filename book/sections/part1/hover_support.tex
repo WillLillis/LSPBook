@@ -1,31 +1,15 @@
-The time is now! We're finally adding a real feature to our LSP! We'll start by
-adding hover support for instructions. A few things need to happen first though,
-before we see that sweet sweet hover documentation window. First we need some
-source of information for our instructions. This source needs to be in a fairly
-organized, regular format fit for parsing. After finding such a source, we then
-need to write some code to parse and load it into our program. This will require
-some parsing code (duh), as well as some data structures to represent our information
-once it's loaded from disk. Finally, we need to trigger every time a hover request
-comes in from the client, check our relevant data structures, and return any results
-we find in the right format. Without further ado, let's get started.
+The time is now! We're finally adding a real feature to our LSP! We'll start by adding hover support for instructions. A few things need to happen first though, before we see that sweet sweet hover documentation window. First we need some source of information for our instructions. This source needs to be in a fairly organized, regular format fit for parsing. After finding such a source, we then need to write some code to parse and load it into our program. This will require some parsing code (duh), as well as some data structures to represent our information once it's loaded from disk. Finally, we need to trigger every time a hover request comes in from the client, check our relevant data structures, and return any results we find in the right format. Without further ado, let's get started.
 
 \subsection{Finding an Information Source}
 
-The first thing we need is find some kind of data source for the x86\_64 instructions.
-It should be well organized, reasonably convertible to some in-memory data structure,
-and hopefully actively maintained (many active assembly languages receive regular
-updates). Lucky for us, such a data source already exists! The open source
-\href{https://github.com/Maratyszcza/Opcodes}{Opcodes} repo conveniently has both
-the x86 and x86\_64 instruction sets in an xml file. Let's pull the appropriate
-file into our project:
+The first thing we need is find some kind of data source for the x86\_64 instructions. It should be well organized, reasonably convertible to some in-memory data structure, and hopefully actively maintained (many active assembly languages receive regular updates). Lucky for us, such a data source already exists! The open source \href{https://github.com/Maratyszcza/Opcodes}{Opcodes} repo conveniently has both the x86 and x86\_64 instruction sets in an xml file. Let's pull the appropriate file into our project:
 
 \begin{lstlisting}[language=bash]
 mkdir opcodes && cd opcodes
 curl https://github.com/Maratyszcza/Opcodes/blob/master/opcodes/x86.xml --output x86.xml
 \end{lstlisting}
 
-Our project should look two directories now (ignoring the \texttt{target} build
-directory).
+Our project should look two directories now (ignoring the \texttt{target} build directory).
 
 \lstset{escapeinside={<@}{@>}}
 \begin{lstlisting}
@@ -69,17 +53,11 @@ Let's take a look inside that new file!
   ...
 \end{lstlisting}
 
-It looks like each instruction has its name stored along with
-a short summary. Nested inside each \texttt{<Instruction ...} there also appears
-to be one or more instruction forms for the GNU Assembler (GAS) or the Go Assembler.
-Each form has some more information included, such as the opcodes for that form,
-the different arguments it can take, etc. How are we going to represent this data
-inside our program?
+It looks like each instruction has its name stored along with a short summary. Nested inside each \texttt{<Instruction ...} there also appears to be one or more instruction forms for the GNU Assembler (GAS) or the Go Assembler. Each form has some more information included, such as the opcodes for that form, the different arguments it can take, etc. How are we going to represent this data inside our program?
 
 \subsection{Data Structures and Parsing}
 
-This calls for a new file! Let's create \texttt{src/instruction.rs} and start
-laying out our data. Here's a start...
+This calls for a new file! Let's create \texttt{src/instruction.rs} and start laying out our data. Here's a start...
 
 \begin{lstlisting}[language=rust]
 pub struct Instruction {
@@ -89,11 +67,7 @@ pub struct Instruction {
 }
 \end{lstlisting}
 
-Those instruction forms seem fairly important, so let's create a struct to represent
-them and then store a vector of forms inside each instruction. Given that there
-are opcode files for both x86 and x86\_64, we should probably put some kind of
-architecture information in there as well. Finally, we'll also derive some common
-methods on these to make our lives easier down the road.
+Those instruction forms seem fairly important, so let's create a struct to represent them and then store a vector of forms inside each instruction. Given that there are opcode files for both x86 and x86\_64, we should probably put some kind of architecture information in there as well. Finally, we'll also derive some common methods on these to make our lives easier down the road.
 
 \begin{lstlisting}[language=rust]
 #[derive(Debug, Clone, Default)]
@@ -127,16 +101,7 @@ pub enum Arch {
 }
 \end{lstlisting}
 
-Writing out all of the variants for the \texttt{OperandType} enum looks really
-annoying and tedious...luckily I've done it for you! For the sake of brevity,
-I'll also take this time to introduce some new crates (\texttt{cargo add strum}
-and \texttt{cargo add strum\_macros} when you have a minutes) to our project. We'll
-use these dependencies to great effect while parsing and deserializing the \texttt{x86.xml}
-file. Some operand types conflict with Rust's naming rules for its enum variants,
-so in those cases I've changed the variant name to something reasonably close,
-and then included the \texttt{\#[strum(serialize = "<ActualOpTypeHere>")]} macro
-to make the translation possible. We'll also apply these helpers to our
-\texttt{Arch} enum.
+Writing out all of the variants for the \texttt{OperandType} enum looks really annoying and tedious...luckily I've done it for you! For the sake of brevity, I'll also take this time to introduce some new crates (\texttt{cargo add strum} and \texttt{cargo add strum\_macros} when you have a minutes) to our project. We'll use these dependencies to great effect while parsing and deserializing the \texttt{x86.xml} file. Some operand types conflict with Rust's naming rules for its enum variants, so in those cases I've changed the variant name to something reasonably close, and then included the \texttt{\#[strum(serialize = "<ActualOpTypeHere>")]} macro to make the translation possible. We'll also apply these helpers to our \texttt{Arch} enum.
 
 \begin{lstlisting}[language=rust]
 use strum_macros::{AsRefStr, EnumString};
@@ -144,8 +109,9 @@ use strum_macros::{AsRefStr, EnumString};
 ...
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, EnumString, AsRefStr)]
+#[derive(Debug, Clone, Copy, EnumString, AsRefStr, Default)]
 pub enum Arch {
+    #[default]
     x86,
     x86_64,
 }
@@ -283,13 +249,7 @@ pub enum OperandType {
 
 \subsection{Information Loading}
 
-Great! Now we have a bunch of data in our xml file, and we have some places to put
-all that data with our above data structures! Now we just need to actually \textit{put}
-the data in the structs. Again, we're focusing on LSPs here! I'll spare the reader
-from what would have most certainly been an eloquent, flowing explanation and
-instead present the code with a brief explanation after. We'll add a new dependency
-with \texttt{cargo add quick-xml}, and then start with a fresh file \texttt{src/populate.rs},
-we have...
+Great! Now we have a bunch of data in our xml file, and we have some places to put all that data with our above data structures! Now we just need to actually \textit{put} the data in the structs. Again, we're focusing on LSPs here! I'll spare the reader from what would have most certainly been an eloquent, flowing explanation and instead present the code with a brief explanation after. We'll add a new dependency with \texttt{cargo add quick-xml}, and then start with a fresh file \texttt{src/populate.rs}, we have...
 
 \begin{lstlisting}[language=rust]
 /* src/populate.rs */
@@ -436,39 +396,11 @@ pub fn populate_instructions(xml_contents: &str) -> anyhow::Result<HashMap<Strin
 }
 \end{lstlisting}
 
-This is a fair amount of code, but most of it is fairly straightforward. The
-\texttt{quick-xml} crate allows for event-based reading. Each opening
-\texttt{<Instruction name=``...} goes right along with an \texttt{Event::Start()}
-with the reader. Similarly, each closing \texttt{</Instruction>} pairs with a
-corresponding \texttt{Event::End()}. The qualified name (\texttt{QName()}) allows
-us to distinguish between events for \texttt{Instruction}s, \texttt{InstructionForm}s,
-and other pieces of information. A new \texttt{Instruction} struct is created with
-each starting event, its fields are filled in, and the struct is moved into a
-\texttt{HashMap} on a closing event. The same goes for \texttt{InstructionForm}s,
-except on close the form is appended to the current \texttt{Instruction}'s
-\texttt{forms} field.
+This is a fair amount of code, but most of it is fairly straightforward. The \texttt{quick-xml} crate allows for event-based reading. Each opening \texttt{<Instruction name=``...} goes right along with an \texttt{Event::Start()} with the reader. Similarly, each closing \texttt{</Instruction>} pairs with a corresponding \texttt{Event::End()}. The qualified name (\texttt{QName()}) allows us to distinguish between events for \texttt{Instruction}s, \texttt{InstructionForm}s, and other pieces of information. A new \texttt{Instruction} struct is created with each starting event, its fields are filled in, and the struct is moved into a \texttt{HashMap} on a closing event. The same goes for \texttt{InstructionForm}s, except on close the form is appended to the current \texttt{Instruction}'s \texttt{forms} field.
 
-Those who gave the code a quick glance may have noticed
-the alarming amount of \texttt{unsafe\{\}} blocks the code uses. Isn't unsafe
-code bad? Aren't we risking frequent crashes and an unreliable end product? Well,
-not really. This piece of code runs once (maybe a handful of times once we get
-further into the project) at startup and that's it. The function's input (our xml
-file) will rarely or never change. Once everything is working today, we can rest
-assured that it will also work tomorrow. We could \textit{definitely} write this
-without any \texttt{unsafe\{\}} blocks by simply replacing 
-\texttt{str::from\_utf8\_unchecked()} with \texttt{str::from\_utf8()} and handling
-any errors appropriately. Using the unchecked variant gives a performance boost,
-however, as the code doesn't check to make sure that the string contains valid
-UTF-8 first. This boost translates into our server reaching full-functionality
-faster after starting, which will translate directly into a better user experience.
-I took the time to measure the two (which you should do for \textit{any} performance
-work!) and found a definite, albeit small performance boost for the unsafe version.
-Given that it adds little to no extra complexity, we'll take it!
+Those who gave the code a quick glance may have noticed the alarming amount of \texttt{unsafe\{\}} blocks the code uses. Isn't unsafe code bad? Aren't we risking frequent crashes and an unreliable end product? Well, not really. This piece of code runs once (maybe a handful of times once we get further into the project) at startup and that's it. The function's input (our xml file) will rarely or never change. Once everything is working today, we can rest assured that it will also work tomorrow. We could \textit{definitely} write this without any \texttt{unsafe\{\}} blocks by simply replacing  \texttt{str::from\_utf8\_unchecked()} with \texttt{str::from\_utf8()} and handling any errors appropriately. Using the unchecked variant gives a performance boost, however, as the code doesn't check to make sure that the string contains valid UTF-8 first. This boost translates into our server reaching full-functionality faster after starting, which will translate directly into a better user experience. I took the time to measure the two (which you should do for \textit{any} performance work!) and found a definite, albeit small performance boost for the unsafe version. Given that it adds little to no extra complexity, we'll take it!
 
-Potentially dubious performance claims aside, let's continue! Let's take that code
-we just wrote and put it to use. We'll call this new function in our \texttt{main()}
-function, and then pass the resulting map to \texttt{main\_loop()} to service
-requests.
+Potentially dubious performance claims aside, let's continue! Let's take that code we just wrote and put it to use. We'll call this new function in our \texttt{main()} function, and then pass the resulting map to \texttt{main\_loop()} to service requests.
 
 \begin{lstlisting}[language=rust]
 /* src/main.rs */
@@ -523,9 +455,7 @@ fn main_loop(
 
 \subsection{Hover Requests}
 
-We're almost there! Our next step is to connect our instruction information in the
-map and incoming hover requests from our editor. Our first step is to recognize
-when we're receiving a hover request:
+We're almost there! Our next step is to connect our instruction information in the map and incoming hover requests from our editor. Our first step is to recognize when we're receiving a hover request:
 
 \begin{lstlisting}[language=rust]
 /* src/main.rs */
@@ -553,10 +483,7 @@ fn main_loop(
 ...
 \end{lstlisting}
 
-If you'd like, take a minute to test this! Try initiating hover requests from various
-points within the sample file. Which fields of the params stay the same? Which change?
-You may have noted that we don't get a ton of information with each request. Looking
-at the spec, we can see the following:
+If you'd like, take a minute to test this! Try initiating hover requests from various points within the sample file. Which fields of the params stay the same? Which change? You may have noted that we don't get a ton of information with each request. Looking at the spec, we can see the following:
 
 % TODO: Typescript highlights
 \begin{lstlisting}
@@ -594,13 +521,7 @@ pub struct Position {
 }
 \end{lstlisting}
 
-We have the cursor's position within the file, and the uri of the file itself. We
-can start by simply opening the file, going the specified postiion, and seeing what's
-there. ``Hey", you might be thinking, ``isn't I/O really slow? I want my LSP to
-be blazingly fast!". You would be right, but don't worry! We'll transition to a
-much faster means of accessing document contents later on. But for now, let's create
-a new \texttt{src/lsp.rs} file and add some new functionality! Our project's structure
-should look like the following now:
+We have the cursor's position within the file, and the uri of the file itself. We can start by simply opening the file, going the specified postiion, and seeing what's there. ``Hey", you might be thinking, ``isn't I/O really slow? I want my LSP to be blazingly fast!". You would be right, but don't worry! We'll transition to a much faster means of accessing document contents later on. But for now, let's create a new \texttt{src/lsp.rs} file and add some new functionality! Our project's structure should look like the following now:
 
 \lstset{escapeinside={<@}{@>}}
 \begin{lstlisting}

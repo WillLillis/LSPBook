@@ -1,84 +1,24 @@
 \subsection{Introduction}
 
-I started my programming journey much later than a lot of my peers.
-Coding and computers were scary topics best left to child prodigies and other geniuses,
-so why even both I reasoned. Nevertheless, following my first year of undergrad
-I landed an internship with my school's Physics department. Little did I know the
-internship was about 1\% physics, and 99\% learning C++. My professor worked in
-low-energy nuclear physics, and his group's experiments generated large amounts
-of data that needed to be processed. My first introduction with ``real" coding 
-was with C++, doing large-scale analysis. I spent my summer switching between online
-documentation and gedit, the text editor he showed me on my first day. Following
-this internship, I started to learn a bit of C, and was happy when I found out
-I could change the colors in Notepad++.
+I started my programming journey much later than a lot of my peers. Coding and computers were scary topics best left to child prodigies and other geniuses, so why even both I reasoned. Nevertheless, following my first year of undergrad I landed an internship with my school's Physics department. Little did I know the internship was about 1\% physics, and 99\% learning C++. My professor worked in low-energy nuclear physics, and his group's experiments generated large amounts of data that needed to be processed. My first introduction with ``real" coding  was with C++, doing large-scale analysis. I spent my summer switching between online documentation and gedit, the text editor he showed me on my first day. Following this internship, I started to learn a bit of C, and was happy when I found out I could change the colors in Notepad++.
 
-Eventually a friend took pity on me and pointed me out to Visual Studio. 
-I cannot understate how mindblowing things like autocomplete, jump to definition, 
-and intelligent syntax highlighting was to me after months of default Notepad++.
-I didn't have to spend time searching through a code base to find a type definition,
-didn't have to run gcc to find out I had forgotten a semilolon on line 64, etc.
-I wondered how these features worked, but understanding seemed beyond my grasp. 
-If I'm struggling to even write code, then code that can ``understand" other code 
-has to be on some elevated plane of complexity.
+Eventually a friend took pity on me and pointed me out to Visual Studio.  I cannot understate how mindblowing things like autocomplete, jump to definition,  and intelligent syntax highlighting was to me after months of default Notepad++. I didn't have to spend time searching through a code base to find a type definition, didn't have to run gcc to find out I had forgotten a semilolon on line 64, etc. I wondered how these features worked, but understanding seemed beyond my grasp.  If I'm struggling to even write code, then code that can ``understand" other code  has to be on some elevated plane of complexity.
 
-I continued on through my classes, learning lots of theory, but not coding very
-much. Eventually I stumbled upon The Primeagen by accident on YouTube one day. It's
-hard to put into words how much he changed my outlook on programming and CS for 
-the better. After months of listening to him shill for Neovim and Rust, I decided
-to spend a summer learning the language and editor. These things scared me, but
-I had finally gotten over this fear and just decided to try my best and see where
-I ended up. 
+I continued on through my classes, learning lots of theory, but not coding very much. Eventually I stumbled upon The Primeagen by accident on YouTube one day. It's hard to put into words how much he changed my outlook on programming and CS for  the better. After months of listening to him shill for Neovim and Rust, I decided to spend a summer learning the language and editor. These things scared me, but I had finally gotten over this fear and just decided to try my best and see where I ended up. 
 
-I \textit{cannot} understate what a great decision this was. Coding has never been
-more fun. After reading through the Rust book, I set out to complete the 2022 Advent
-of Code calendar.  Working through those exercises (and sometimes referring to Reddit
-for help), I slowly figured things out. After a few weeks, I was comfortable enough
-to start making small modifications to the Lua configuration I had copied from 
-Prime's setup video. I finished Advent of Code, and started looking for a larger
-project to work on.
+I \textit{cannot} understate what a great decision this was. Coding has never been more fun. After reading through the Rust book, I set out to complete the 2022 Advent of Code calendar.  Working through those exercises (and sometimes referring to Reddit for help), I slowly figured things out. After a few weeks, I was comfortable enough to start making small modifications to the Lua configuration I had copied from  Prime's setup video. I finished Advent of Code, and started looking for a larger project to work on.
 
-I eventually stumbled onto \href{https://github.com/bergercookie/asm-lsp}{asm-lsp},
-an open-source assembly LSP written in Rust. The project had hover support for instructions,
-but that was about it. I found a small \texttt{// TODO} comment in the source code,
-and decide to take a look. After an hour of hopping around the project with the help
-of the Rust LSP, I thought I had an idea of how to solve the problem. I opened a
-pull request, and to my surprise it was accepted. I started digging into the code a bit more,
-and found another thing to fix. And then I found a feature to add. And then another.
-And another. Over the course of a few months, I got very comfortable with the LSP's
-code, and in turn also found myself fairly comfortable with the LSP protocol. Working
-on the project had demysitified the ``magic" code that understood code, and I found
-myself enjoying the rabbit hole I had unwitteningly dived down.
+I eventually stumbled onto \href{https://github.com/bergercookie/asm-lsp}{asm-lsp}, an open-source assembly LSP written in Rust. The project had hover support for instructions, but that was about it. I found a small \texttt{// TODO} comment in the source code, and decide to take a look. After an hour of hopping around the project with the help of the Rust LSP, I thought I had an idea of how to solve the problem. I opened a pull request, and to my surprise it was accepted. I started digging into the code a bit more, and found another thing to fix. And then I found a feature to add. And then another. And another. Over the course of a few months, I got very comfortable with the LSP's code, and in turn also found myself fairly comfortable with the LSP protocol. Working on the project had demysitified the ``magic" code that understood code, and I found myself enjoying the rabbit hole I had unwitteningly dived down.
 
-This learning journey was incredibly valuable to me, and I'd like to help others 
-discover this magic. 
+This learning journey was incredibly valuable to me, and I'd like to help others  discover this magic. 
 
 \subsection{What is this book?}
 
-As the title suggests, this book walks you through building an LSP server for x86-64
-assembly. It won't be the most complete LSP server, it won't be the cleanest, but it
-will be \textit{yours}. We'll start with a basic scaffold and build up from there.
-So anyways, onto the burning question:
+As the title suggests, this book walks you through building an LSP server for x86-64 assembly. It won't be the most complete LSP server, it won't be the cleanest, but it will be \textit{yours}. We'll start with a basic scaffold and build up from there. So anyways, onto the burning question:
 
 ``Why Assembly? Nobody actually codes in that anymore." 
 
-Fair enough, almost nobody actually hand rolls assembly anymore. Those damned compiler
-people have done too good of a job! (If you're interested in compilers though, I 
-can't reccomend Thorsten Ball's \href{https://interpreterbook.com}{``Writing an 
-Interpreter in Go"} and \href{https://compilerbook.com}{``Writing a Compiler in 
-Go"} enough. Both are incredibly well done and helped motivate me to write this 
-book.) But in all seriousness, I've chosen assembly for its \textit{simplicity}.
-Assembly is simple enough that the majority of one's effort can be spent learning
-the main item, LSPs! Assembly's flat structure makes things just simple enough 
-so that lots of features can be doable without weeks of studying a specific language's
-features. The obvious alternative is to use a toy language, which in my opinion
-sucks all the fun out. Building things for the sake of building is great, but creating
-something useful along the way is better! All you really have to know is that there 
-are instructions and registers. Instructions tell the computer to do something and
-typically take 0 to 2 arguments. Registers are like tiny variables for the CPU.
-They vary in size, usually a nice power of 2 from 16 bits and up. Finally there
-are assembler directives, which basically just tell the assembler to do something,
-but aren't translated to machine code like instructions are. To be more concrete,
-here's a simple hello world program written for the GNU Assembler (GAS).
+Fair enough, almost nobody actually hand rolls assembly anymore. Those damned compiler people have done too good of a job! (If you're interested in compilers though, I  can't reccomend Thorsten Ball's \href{https://interpreterbook.com}{``Writing an  Interpreter in Go"} and \href{https://compilerbook.com}{``Writing a Compiler in  Go"} enough. Both are incredibly well done and helped motivate me to write this  book.) But in all seriousness, I've chosen assembly for its \textit{simplicity}. Assembly is simple enough that the majority of one's effort can be spent learning the main item, LSPs! Assembly's flat structure makes things just simple enough  so that lots of features can be doable without weeks of studying a specific language's features. The obvious alternative is to use a toy language, which in my opinion sucks all the fun out. Building things for the sake of building is great, but creating something useful along the way is better! All you really have to know is that there  are instructions and registers. Instructions tell the computer to do something and typically take 0 to 2 arguments. Registers are like tiny variables for the CPU. They vary in size, usually a nice power of 2 from 16 bits and up. Finally there are assembler directives, which basically just tell the assembler to do something, but aren't translated to machine code like instructions are. To be more concrete, here's a simple hello world program written for the GNU Assembler (GAS).
 
 \begin{lstlisting}[language=gas]
 # gcc -nostdlib -nostartfiles -nodefaultlibs -static hello_lsp.s -o hello_lsp && ./hello_lsp
@@ -113,28 +53,8 @@ _start:
     syscall   
 \end{lstlisting}
 
-Without going into too much detail, the \texttt{.data} directive simply tells the
-assembler to assemble the following statements into a data subsection. Underneath
-that, \texttt{.equ} works essentially the same as the C preprocessor's \texttt{\#define}.
-Finally \texttt{.asciz} creates a null terminated C string. We then grab the length
-of the message. Some data gets moved around so we can make the \texttt{write} and
-\texttt{exit} system calls, and that's about it! The specifics can vary depending
-on architecture and assembler you're using, but most assembly is fairly similar
-in structure. 
+Without going into too much detail, the \texttt{.data} directive simply tells the assembler to assemble the following statements into a data subsection. Underneath that, \texttt{.equ} works essentially the same as the C preprocessor's \texttt{\#define}. Finally \texttt{.asciz} creates a null terminated C string. We then grab the length of the message. Some data gets moved around so we can make the \texttt{write} and \texttt{exit} system calls, and that's about it! The specifics can vary depending on architecture and assembler you're using, but most assembly is fairly similar in structure. 
 
-We'll start with some general LSP information and project setup. While I won't skip
-any steps, I'll do my best to speed through the non-LSP parts to keep things interesting.
-While there's lots to be learned about things like XML parsing, serialization,
-deserialization, and JSON RPC, I'm not the right person and this isn't the right 
-book to teach those things. After these initial steps, we'll have a working program
-that can connect to an LSP client, load some relevant information from the disk...and 
-that's about it. But don't despair! The very next thing on our list is to add hover
-support for instructions and registers. After this feature is in place, we'll sidetrack
-briefly to add some configuration options for our users (of which there will be many
-thousands, so we can also practice asking the product manager ``but how will this
-scale?"). Next we'll add autocomplete!
+We'll start with some general LSP information and project setup. While I won't skip any steps, I'll do my best to speed through the non-LSP parts to keep things interesting. While there's lots to be learned about things like XML parsing, serialization, deserialization, and JSON RPC, I'm not the right person and this isn't the right  book to teach those things. After these initial steps, we'll have a working program that can connect to an LSP client, load some relevant information from the disk...and  that's about it. But don't despair! The very next thing on our list is to add hover support for instructions and registers. After this feature is in place, we'll sidetrack briefly to add some configuration options for our users (of which there will be many thousands, so we can also practice asking the product manager ``but how will this scale?"). Next we'll add autocomplete!
 
-Doing so will require a couple different steps, but this is when things truly start
-to get fun. When I first added autocomplete to asm-lsp, things really started to
-click. After autocomplete, we'll add a bunch of cool (but relatively siloed)
-capabilities.
+Doing so will require a couple different steps, but this is when things truly start to get fun. When I first added autocomplete to asm-lsp, things really started to click. After autocomplete, we'll add a bunch of cool (but relatively siloed) capabilities.

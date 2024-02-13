@@ -1,10 +1,8 @@
-All of the finished code for each chapter can be found in the \href{\URL}{book's repo}. 
-With that being said, let's get started!
+All of the finished code for each chapter can be found in the \href{\URL}{book's repo}.  With that being said, let's get started!
 
 \subsection{Dependencies}
 
-As with nearly any other Rust project, we can start by creating a new project with
-cargo: \texttt{cargo new assembly-lsp}. We'll add some dependencies next:
+As with nearly any other Rust project, we can start by creating a new project with cargo: \texttt{cargo new assembly-lsp}. We'll add some dependencies next:
 
 \begin{itemize}
 	\item \texttt{cargo add crossbeam-channel}
@@ -45,11 +43,7 @@ cargo: \texttt{cargo new assembly-lsp}. We'll add some dependencies next:
 
 \subsection{Starting Code}
 
-Now that the scaffolding is in place, we can finally get to coding. A great template
-can be found in the rust-analyzer (the absolutely excellent Rust LSP)
-\href{https://github.com/rust-lang/rust-analyzer/tree/master/lib/lsp-server}{repo}.
-Their example starts out with some code for the go to definition capability. We'll
-get there eventually, but our starting point is different. Here's the stripped down code:
+Now that the scaffolding is in place, we can finally get to coding. A great template can be found in the rust-analyzer (the absolutely excellent Rust LSP) \href{https://github.com/rust-lang/rust-analyzer/tree/master/lib/lsp-server}{repo}. Their example starts out with some code for the go to definition capability. We'll get there eventually, but our starting point is different. Here's the stripped down code:
 
 \begin{lstlisting}[language=rust]
 use log::info;
@@ -115,16 +109,9 @@ where
 }
 \end{lstlisting}
 
-There's nothing too crazy here, but it'll help to unpack everything briefly. Let's
-start from the top! The first thing we do is set up our logging. As the LSP protocol
-uses \texttt{stdout} for client-server communication, we configure our logger to
-use \texttt{stderr}. Next we use the \texttt{lsp-server} crate to open a connection
-between the LSP server (our program) and an LSP Client (likely a text editor).
+There's nothing too crazy here, but it'll help to unpack everything briefly. There are two main pieces to this: \texttt{main()} and \texttt{main\_loop()}. \texttt{main} will be the first code to run when our server starts. We'll do a lot of setup and configuration in here, before entering our second main block, the \texttt{main\_loop()}. This portion of the code just spins forever, recieving and (potentially) responding  to requests and notifications from the editor's language client. Those who have done any programming with Arduinos will find this pattern to be very familiar. Anyway, let's start from the top! The first thing we do is set up our logging. As the LSP protocol uses \texttt{stdout} for client-server communication, we configure our logger to use \texttt{stderr}. Next we use the \texttt{lsp-server} crate to open a connection between the LSP server (our program) and an LSP Client (likely a text editor).
 
-Next we have an object to specify our server capabilities to the client. If you've
-taken a look at the \href{https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/}{LSP spec},
-you probably noticed a large number of capabilities. The great thing about the LSP
-spec is that we only have to implement the capabilities we want to. From the \href{https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/\#capabilities}{docs}:
+Next we have an object to specify our server capabilities to the client. If you've taken a look at the \href{https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/}{LSP spec}, you probably noticed a large number of capabilities. The great thing about the LSP spec is that we only have to implement the capabilities we want to. From the \href{https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/\#capabilities}{docs}:
 
 \begin{center}
 	``Not every language server can support all features defined by the protocol.
@@ -132,23 +119,9 @@ spec is that we only have to implement the capabilities we want to. From the \hr
 	features."
 \end{center}
 
-The capabilities are all optional, and if look at the \texttt{lsp-types} crate, we can see
-that every capability-related type is of type \texttt{Option<T>}. As the default
-value for any \texttt{Option} type is \texttt{None}, we can safely specify the
-capabilities we care about, and ignore all the others.
+The capabilities are all optional, and if look at the \texttt{lsp-types} crate, we can see that every capability-related type is of type \texttt{Option<T>}. As the default value for any \texttt{Option} type is \texttt{None}, we can safely specify the capabilities we care about, and ignore all the others.
 
-With our (currently empty) capabilities defined via \texttt{server\_capabilities},
-we communicate them via the `initialize` request and receive client's capabilities
-back in turn. With this handshake out of the way, we then enter the meat of the program,
-which is just a simple event loop to receive and respond to requests from the client.
-Rust's pattern matching really shines here, letting us easily break down our server's
-actions by the type of message its received. Our event loop doesn't do anything
-besides print out the messages it receives. At this point it would probably be useful
-to test things out and make sure the program is behaving as expected. While we'd
-normally just test the things by running the LSP with our editor of choice, for
-pedagogical purposes it can be useful to see how things work manually. If we run
-our server from the command line, (with a little help from \texttt{sed} we can act
-as the LSP client and manually enter JSON RPC messages. Starting with
+With our (currently empty) capabilities defined via \texttt{server\_capabilities}, we communicate them via the `initialize` request and receive client's capabilities back in turn. With this handshake out of the way, we then enter the meat of the program, which is just a simple event loop to receive and respond to requests from the client. Rust's pattern matching really shines here, letting us easily break down our server's actions by the type of message its received. Our event loop doesn't do anything besides print out the messages it receives. At this point it would probably be useful to test things out and make sure the program is behaving as expected. While we'd normally just test the things by running the LSP with our editor of choice, for pedagogical purposes it can be useful to see how things work manually. If we run our server from the command line, (with a little help from \texttt{sed} we can act as the LSP client and manually enter JSON RPC messages. Starting with
 
 \begin{lstlisting}[language=bash]
     sed -u -re 's/^(.*)$/\1\r/' | cargo run
@@ -170,10 +143,7 @@ Content-Length: 59
 {"jsonrpc": "2.0", "method": "initialized", "params": {}}
 \end{lstlisting}
 
-will give our server enough information to enter into it's event loop. This isn't
-a good way to interact with or test the, but it's helpful to peel back the curtain
-at times and see that this isn't magic. It really is just JSON RPC over \texttt{stdout}.
-We can wrap things up by sending shutdown and exit requests.
+will give our server enough information to enter into it's event loop. This isn't a good way to interact with or test the, but it's helpful to peel back the curtain at times and see that this isn't magic. It really is just JSON RPC over \texttt{stdout}. We can wrap things up by sending shutdown and exit requests.
 
 \begin{lstlisting}
 Content-Length: 67
@@ -231,29 +201,13 @@ INFO [assembly_lsp] Shutting down assembly-lsp
 $
 \end{lstlisting}
 
-Finally, underneath the main loop we have a small helper function
-\texttt{cast\_req}. Depending on your experience level with Rust, this function signature
-may look a little scary, but I promise it's not. Per the LSP spec, the parameters
-passed along with each request all have distinct types. The trait bounds used in
-the function's signature simply allows it to take in a request and return the correct
-parameter type.
+Finally, underneath the main loop we have a small helper function \texttt{cast\_req}. Depending on your experience level with Rust, this function signature may look a little scary, but I promise it's not. Per the LSP spec, the parameters passed along with each request all have distinct types. The trait bounds used in the function's signature simply allows it to take in a request and return the correct parameter type.
 
 \subsection{LSP to Editor Connection}
 
-Now that most of the boilerplate-y code is in place, let's connect
-our server to our editor. This process can vary greatly from editor to editor.
+Now that most of the boilerplate-y code is in place, let's connect our server to our editor. This process can vary greatly from editor to editor.
 
-I personally use Neovim, and would highly reccomend it to anyone interested in
-creating their own \href{https://www.youtube.com/watch?v=QMVIJhC9Veg}{Personal Development Environment}.
-However with it being a very personalized editor, methods for attaching a new LSP
-can cary greatly depending on one's config. For the purposes of this book however,
-we want to focus on LSPs, not finding the right \st{incantation} set of configuration
-options to make the two processes connect. I've gone through this process for a few
-editors, and found Sublime's setup to be the easiest \textit{by far}. I would highly
-encourage you to set up the LSP in your editor of choice. However, in the interest
-of having some guaranteed way to test things, I'll go through the sublime setup below.
-I've included the specific steps I followed on my Ubuntu system, but if that doesn't
-work I've also provided links to the relevant documentation.
+I personally use Neovim, and would highly reccomend it to anyone interested in creating their own \href{https://www.youtube.com/watch?v=QMVIJhC9Veg}{Personal Development Environment}. However with it being a very personalized editor, methods for attaching a new LSP can cary greatly depending on one's config. For the purposes of this book however, we want to focus on LSPs, not finding the right \st{incantation} set of configuration options to make the two processes connect. I've gone through this process for a few editors, and found Sublime's setup to be the easiest \textit{by far}. I would highly encourage you to set up the LSP in your editor of choice. However, in the interest of having some guaranteed way to test things, I'll go through the sublime setup below. I've included the specific steps I followed on my Ubuntu system, but if that doesn't work I've also provided links to the relevant documentation.
 
 \begin{enumerate}
 	\item Install \href{https://www.sublimetext.com/}{Sublime Text} if you don't already have it
@@ -289,12 +243,7 @@ work I've also provided links to the relevant documentation.
 }
 \end{lstlisting}
 
-...And that should be it! We can make sure things are working by opening the project's
-test file in Sublime and checking the logs (\texttt{Tools > LSP > Toggle Log Panel}). 
-We should see the same logs we added earlier, as well as the JSON messages exchanged
-as part of the protocol. That's all the setup we'll do for now, let's get started
-on our first feature
-% Setup
+...And that should be it! We can make sure things are working by opening the project's test file in Sublime and checking the logs (\texttt{Tools > LSP > Toggle Log Panel}).  We should see the same logs we added earlier, as well as the JSON messages exchanged as part of the protocol. That's all the setup we'll do for now, let's get started on our first feature % Setup
 % Include instructions for major text editors
 % Neovim
 % Sublime-> This may be best...
