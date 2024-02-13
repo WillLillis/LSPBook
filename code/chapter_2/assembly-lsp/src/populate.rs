@@ -13,7 +13,7 @@ use anyhow::anyhow;
 use log::debug;
 
 /// Takes xml file contents and converts it into a Vec<Instruction>
-pub fn populate_instructions(xml_contents: &str) -> anyhow::Result<Vec<Instruction>> {
+pub fn populate_instructions(xml_contents: &str) -> anyhow::Result<HashMap<String, Instruction>> {
     let mut instructions_map = HashMap::<String, Instruction>::new();
 
     let mut reader = Reader::from_str(xml_contents);
@@ -137,5 +137,5 @@ pub fn populate_instructions(xml_contents: &str) -> anyhow::Result<Vec<Instructi
         }
     }
 
-    Ok(instructions_map.into_values().collect())
+    Ok(instructions_map)
 }

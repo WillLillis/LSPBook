@@ -1,7 +1,9 @@
-use assembly_lsp::{instruction::Instruction, populate::{populate_instructions, populate_instructions_slow}};
+use std::collections::HashMap;
+
+use assembly_lsp::{instruction::Instruction, populate::populate_instructions};
 use log::info;
 use lsp_server::{Connection, ExtractError, Message, Request, RequestId};
-use lsp_types::{InitializeParams, ServerCapabilities};
+use lsp_types::{request::HoverRequest, InitializeParams, ServerCapabilities};
 
 fn main() -> anyhow::Result<()> {
     // Set up logging. Because `stdio_transport` gets a lock on stdout and stdin, we must have our
@@ -24,32 +26,35 @@ fn main() -> anyhow::Result<()> {
 
     info!("Populating instruction set -> x86...");
     let xml_conts_x86 = include_str!("../opcodes/x86.xml");
-    let x86_instructions: Vec<Instruction> = populate_instructions(xml_conts_x86)?.into();
+    let x86_instrs = populate_instructions(xml_conts_x86)?;
 
-    main_loop(connection, initialization_params)?;
+    main_loop(connection, initialization_params, x86_instrs)?;
     io_threads.join()?;
-
-    info!(
-        "Don't you dare optimize this away, compiler! {:?}",
-        x86_instructions
-    );
 
     // Shut down gracefully.
     info!("Shutting down assembly-lsp");
     Ok(())
 }
 
-fn main_loop(connection: Connection, params: serde_json::Value) -> anyhow::Result<()> {
+fn main_loop(
+    connection: Connection,
+    params: serde_json::Value,
+    x86_instrs: HashMap<String, Instruction>,
+) -> anyhow::Result<()> {
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
     info!("Entering main loop");
     for msg in &connection.receiver {
-        eprintln!("got msg: {msg:?}");
+        info!("got msg: {msg:?}");
         match msg {
             Message::Request(req) => {
                 if connection.handle_shutdown(&req)? {
                     return Ok(());
                 }
                 info!("Got request: {req:?}");
+                if let Ok((id, params)) = cast_req::<HoverRequest>(req) {
+                    info!("{:?}", params);
+                    params.text_document_position_params
+                }
             }
             Message::Response(resp) => {
                 info!("Got response: {resp:?}");
