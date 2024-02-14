@@ -1,1 +1,51 @@
-// TODO!!!
+use std::{fs::File, io::BufRead};
+
+use lsp_types::TextDocumentPositionParams;
+
+use anyhow::anyhow;
+
+/// Find the start and end indices of a word inside the given line
+pub fn find_word_at_pos(line: &str, col: usize) -> (usize, usize) {
+    let line_ = format!("{} ", line);
+    let is_ident_char = |c: char| c.is_alphanumeric() || c == '_';
+
+    let start = line_
+        .chars()
+        .enumerate()
+        .take(col)
+        .filter(|&(_, c)| !is_ident_char(c))
+        .last()
+        .map(|(i, _)| i + 1)
+        .unwrap_or(0);
+
+    #[allow(clippy::filter_next)]
+    let mut end = line_
+        .chars()
+        .enumerate()
+        .skip(col)
+        .filter(|&(_, c)| !is_ident_char(c));
+
+    let end = end.next();
+    (start, end.map(|(i, _)| i).unwrap_or(col))
+}
+
+pub fn get_word_from_file_params(
+    pos_params: &TextDocumentPositionParams,
+) -> anyhow::Result<String> {
+    let uri = &pos_params.text_document.uri;
+    let line = pos_params.position.line as usize;
+    let col = pos_params.position.character as usize;
+
+    let filepath = uri.to_file_path();
+    match filepath {
+        Ok(file) => {
+            let file = File::open(file).unwrap_or_else(|_| panic!("Couldn't open file -> {}", uri));
+            let buf_reader = std::io::BufReader::new(file);
+
+            let line_conts = buf_reader.lines().nth(line).unwrap().unwrap();
+            let (start, end) = find_word_at_pos(&line_conts, col);
+            Ok(String::from(&line_conts[start..end]))
+        }
+        Err(_) => Err(anyhow!("filepath get error")),
+    }
+}

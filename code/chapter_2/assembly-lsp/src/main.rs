@@ -1,9 +1,14 @@
 use std::collections::HashMap;
 
-use assembly_lsp::{instruction::Instruction, populate::populate_instructions};
+use assembly_lsp::{
+    instruction::Instruction, lsp::get_word_from_file_params, populate::populate_instructions,
+};
 use log::info;
 use lsp_server::{Connection, ExtractError, Message, Request, RequestId};
-use lsp_types::{request::HoverRequest, InitializeParams, ServerCapabilities};
+use lsp_types::{
+    request::HoverRequest, Hover, HoverContents, InitializeParams, MarkupContent, MarkupKind,
+    ServerCapabilities,
+};
 
 fn main() -> anyhow::Result<()> {
     // Set up logging. Because `stdio_transport` gets a lock on stdout and stdin, we must have our
@@ -52,8 +57,29 @@ fn main_loop(
                 }
                 info!("Got request: {req:?}");
                 if let Ok((id, params)) = cast_req::<HoverRequest>(req) {
-                    info!("{:?}", params);
-                    params.text_document_position_params
+                    if let Ok(word) =
+                        get_word_from_file_params(&params.text_document_position_params)
+                    {
+                        let resp = match x86_instrs.get(&word) {
+                            Some(instr) => Some(Hover {
+                                contents: HoverContents::Markup(MarkupContent {
+                                    kind: MarkupKind::Markdown,
+                                    value: "Hello, LSP!".to_string(), //format!("{}", instr),
+                                }),
+                                range: None,
+                            }),
+                            None => None,
+                        };
+                    }
+                    /*
+                     *    let result = serde_json::to_value(&hover_res).unwrap();
+                     *    let result = Response {
+                     *    id: id.clone(),
+                     *    result: Some(result),
+                     *    error: None,
+                     *    };
+                     *    connection.sender.send(Message::Response(result))?;
+                     * */
                 }
             }
             Message::Response(resp) => {
