@@ -476,7 +476,6 @@ fn main_loop(
                 info!("Got request: {req:?}");
                 if let Ok((id, params)) = cast_req::<HoverRequest>(req) {
                     info!("{:?}", params);
-                    //params.text_document_position_params.
                 }
             }
             Message::Response(resp) => {
@@ -595,12 +594,177 @@ pub fn get_word_from_file_params(
 }
 \end{lstlisting}
 
-The details here are a bit messy, but the overall picture should be very straightforward. We'll pass the \texttt{TextDocumentPositionParams} object we got as part of our hover request parameters to \texttt{get\_word\_from\_file\_params()}. This function will use the params to read the appropriate file from disk. The relevant line is grabbed, and from there we can use \texttt{find\_word\_at\_pos()} to return whatever ``word" is under the cursor. In this case, a word is simply whatever contiguous alphanumeric characters (and underscores) are under the cursor. Side note but Rust's support for iterators is really excellent. Now that I've done my mandatory shilling, let's use our new code!
+The details here are a bit messy, but the overall picture should be very straightforward. We'll pass the \texttt{TextDocumentPositionParams} object we got as part of our hover request parameters to \texttt{get\_word\_from\_file\_params()}. This function will use the params to read the appropriate file from disk. The relevant line is grabbed, and from there we can use \texttt{find\_word\_at\_pos()} to return whatever ``word" is under the cursor. In this case, a word is simply whatever contiguous alphanumeric characters (and underscores) are under the cursor. Side note but Rust's support for iterators is really excellent. Now that I've done my mandatory shilling, let's use our new code! We can check exactly when we receive a hover request! We can get the word under the cursor for
+the hover request! We can search our hashmap of instructions for that word! We can send back...wait, what are we supposed to send back?
 
 \begin{lstlisting}[language=rust]
 /* src/main.rs */
+use std::collections::HashMap;
+
+use assembly_lsp::{
+    instruction::Instruction, lsp::get_word_from_file_params, populate::populate_instructions,
+};
+use log::info;
+use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Reponse};
+use lsp_types::{
+    request::HoverRequest, Hover, HoverContents, InitializeParams, MarkupContent, MarkupKind,
+    ServerCapabilities,
+};
+
+
+fn main() -> anyhow::Result<()> {
+...
+
+fn main_loop(
+    connection: Connection,
+    params: serde_json::Value,
+    x86_instrs: HashMap<String, Instruction>,
+) -> anyhow::Result<()> {
+    let _params: InitializeParams = serde_json::from_value(params).unwrap();
+    info!("Entering main loop");
+    for msg in &connection.receiver {
+        info!("got msg: {msg:?}");
+        match msg {
+            Message::Request(req) => {
+                if connection.handle_shutdown(&req)? {
+                    return Ok(());
+                }
+                info!("Got request: {req:?}");
+                if let Ok((id, params)) = cast_req::<HoverRequest>(req) {
+                    if let Ok(word) =
+                        get_word_from_file_params(&params.text_document_position_params)
+                    {
+                        match x86_instrs.get(&word) {
+                            Some(instr) => {
+                                // what now?
+                            },
+                            None => {
+                                // ?
+                            },
+                        };
+                    }
+...
+\end{lstlisting}
+
+To the spec!
+
+\begin{lstlisting}
+/**
+ * The result of a hover request.
+ */
+export interface Hover {
+	/**
+	 * The hover's content
+	 */
+	contents: MarkedString | MarkedString[] | MarkupContent;
+
+	/**
+	 * An optional range is a range inside a text document
+	 * that is used to visualize a hover, e.g. by changing the background color.
+	 */
+	range?: Range;
+}    
+\end{lstlisting}
+
+Let's not worry about that \texttt{range} parameter for now. Looking more closely at \texttt{contents}, let's dig into its variant \texttt{MarkupContent}:
+
+\begin{lstlisting}
+/**
+ * Describes the content type that a client supports in various
+ * result literals like `Hover`, `ParameterInfo` or `CompletionItem`.
+ *
+ * Please note that `MarkupKinds` must not start with a `$`. This kinds
+ * are reserved for internal usage.
+ */
+export namespace MarkupKind {
+	/**
+	 * Plain text is supported as a content format
+	 */
+	export const PlainText: 'plaintext' = 'plaintext';
+
+	/**
+	 * Markdown is supported as a content format
+	 */
+	export const Markdown: 'markdown' = 'markdown';
+}
+export type MarkupKind = 'plaintext' | 'markdown';
+
+...
+
+/**
+ * A `MarkupContent` literal represents a string value which content is
+ * interpreted base on its kind flag. Currently the protocol supports
+ * `plaintext` and `markdown` as markup kinds.
+ *
+ * If the kind is `markdown` then the value can contain fenced code blocks like
+ * in GitHub issues.
+ *
+ * Here is an example how such a string can be constructed using
+ * JavaScript / TypeScript:
+ * ```typescript
+ * let markdown: MarkdownContent = {
+ * 	kind: MarkupKind.Markdown,
+ * 	value: [
+ * 		'# Header',
+ * 		'Some text',
+ * 		'```typescript',
+ * 		'someCode();',
+ * 		'```'
+ * 	].join('\n')
+ * };
+ * ```
+ *
+ * *Please Note* that clients might sanitize the return markdown. A client could
+ * decide to remove HTML from the markdown to avoid script execution.
+ */
+export interface MarkupContent {
+	/**
+	 * The type of the Markup
+	 */
+	kind: MarkupKind;
+
+	/**
+	 * The content itself
+	 */
+	value: string;
+}
+\end{lstlisting}
+
+Let's take advantage of this neat Markdown integration! All we really need to do is supply a \texttt{String} containing our Markdown content. Adding the appropriate code
+to our event loop, we can again use the types provided by \texttt{lsp\_types} to create a \texttt{Hover} response. This struct is then serialized to transmit via RPC as our response object with our call to \texttt{serde\_json::to\_value()}. After that, we send it off! 
+
+\begin{lstlisting}[language=rust]
+/* src/main.rs */
+if let Ok((id, params)) = cast_req::<HoverRequest>(req) {
+    if let Ok(word) =
+        get_word_from_file_params(&params.text_document_position_params)
+    {
+        let resp = match x86_instrs.get(&word) {
+            Some(instr) => {
+                Some(Hover {
+                    contents: HoverContents::Markup(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: /* Documentation goes here... */,
+                    }),
+            },
+            None => None,
+        };
+        let result = serde_json::to_value(&resp).unwrap();
+        let result = Response {
+            id: id.clone(),
+            result: Some(result),
+            error: None,
+        };
+        connection.sender.send(Message::Response(result))?;
+    }
+...
+\end{lstlisting}
+
+Just one issue, how do we get a Markdown string of our documentation? By implementing the \texttt{Display} trait of course! Let's make a brief stop by \texttt{src/instruction.rs}.
+
+\begin{lstlisting}[language=rust]
+/* src/instruction.rs */
 // TODO!
-// Don't forget the imports...
 \end{lstlisting}
 
 \subsection{Cleanup}

@@ -4,7 +4,7 @@ use assembly_lsp::{
     instruction::Instruction, lsp::get_word_from_file_params, populate::populate_instructions,
 };
 use log::info;
-use lsp_server::{Connection, ExtractError, Message, Request, RequestId};
+use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
 use lsp_types::{
     request::HoverRequest, Hover, HoverContents, InitializeParams, MarkupContent, MarkupKind,
     ServerCapabilities,
@@ -70,16 +70,14 @@ fn main_loop(
                             }),
                             None => None,
                         };
+                        let result = serde_json::to_value(&resp).unwrap();
+                        let result = Response {
+                            id: id.clone(),
+                            result: Some(result),
+                            error: None,
+                        };
+                        connection.sender.send(Message::Response(result))?;
                     }
-                    /*
-                     *    let result = serde_json::to_value(&hover_res).unwrap();
-                     *    let result = Response {
-                     *    id: id.clone(),
-                     *    result: Some(result),
-                     *    error: None,
-                     *    };
-                     *    connection.sender.send(Message::Response(result))?;
-                     * */
                 }
             }
             Message::Response(resp) => {
