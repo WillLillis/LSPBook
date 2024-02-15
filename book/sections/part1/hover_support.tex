@@ -764,24 +764,111 @@ Just one issue, how do we get a Markdown string of our documentation? By impleme
 
 \begin{lstlisting}[language=rust]
 /* src/instruction.rs */
-// TODO!
+use std::fmt::Display;
+
+use strum_macros::{AsRefStr, EnumString};
+
+#[derive(Debug, Clone, Default)]
+pub struct Instruction {
+    pub name: String,
+    pub summary: String,
+    pub arch: Option<Arch>,
+    pub forms: Vec<InstructionForm>,
+}
+
+impl Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let header: String;
+        if let Some(arch) = &self.arch {
+            header = format!("{} [{}]", &self.name, arch.as_ref());
+        } else {
+            header = self.name.clone();
+        }
+
+        let mut v: Vec<&str> = vec![&header, &self.summary, "\n", "## Forms", "\n"];
+
+        // instruction forms
+        let instruction_form_strs: Vec<String> =
+            self.forms.iter().map(|f| format!("{}", f)).collect();
+        for item in instruction_form_strs.iter() {
+            v.push(item.as_str());
+        }
+
+        let s = v.join("\n");
+        write!(f, "{}", s)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct InstructionForm {
+    pub gas_name: Option<String>,
+    pub go_name: Option<String>,
+    pub encoding: String,
+    pub operands: Vec<Operand>,
+}
+
+impl Display for InstructionForm {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        if let Some(val) = &self.gas_name {
+            s += &format!("*GAS*: {} | ", val);
+        }
+        if let Some(val) = &self.go_name {
+            s += &format!("*GO*: {} | ", val);
+        }
+
+        // get rid of trailing " | "
+        if !s.is_empty() {
+            s = format!("- {}\n\n", &s[..s.len() - 3]);
+        }
+
+        // Operands
+        let operands_str: String = self
+            .operands
+            .iter()
+            .map(|op| {
+                let mut s = format!("  + {:<8}", format!("[{}]", op.op_type.as_ref()));
+                if let Some(input) = op.input {
+                    s += &format!(" input = {:<5} ", input)
+                }
+                if let Some(output) = op.output {
+                    s += &format!(" output = {:<5}", output)
+                }
+
+                s
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+        s = s + &operands_str + "\n";
+
+        write!(f, "{}", s)?;
+        Ok(())
+    }
+}
 \end{lstlisting}
+
+Now that we've taken care of the \texttt{Display} trait, displaying our documentation is as simple as adding a single call to the \texttt{format!()} macro..
+
+\begin{lstlisting}[language=rust]
+/* src/main.rs */
+let resp = match x86_instrs.get(&word) {
+    Some(instr) => Some(Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: format!("{}", instr),
+        }),
+        range: None,
+    }),
+    None => None,
+};
+\end{lstlisting}
+
+Let's test it out!
+% try it out, screenshots, encourage reader to try out different formatting, etc.
+
+% Fix bug with missing associated names
+
 
 \subsection{Cleanup}
 
-% Motivate having info
-
-% Introduce the instruction info repo
-
-% Introduce the register xml files from asm-lsp
-
-% Sketch out structs for instructions and registers
-
-% Quickly go over xml parsing functions
-
-% Put in start up code
-
-% Walk through the hoverrequest/ response interaction in detail
-% go to spec
-% sketch out according code
-% Make improvements

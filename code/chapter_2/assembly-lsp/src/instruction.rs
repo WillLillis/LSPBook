@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use strum_macros::{AsRefStr, EnumString};
 
 #[derive(Debug, Clone, Default)]
@@ -8,12 +10,75 @@ pub struct Instruction {
     pub forms: Vec<InstructionForm>,
 }
 
+impl Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let header: String;
+        if let Some(arch) = &self.arch {
+            header = format!("{} [{}]", &self.name, arch.as_ref());
+        } else {
+            header = self.name.clone();
+        }
+
+        let mut v: Vec<&str> = vec![&header, &self.summary, "\n", "## Forms", "\n"];
+
+        // instruction forms
+        let instruction_form_strs: Vec<String> =
+            self.forms.iter().map(|f| format!("{}", f)).collect();
+        for item in instruction_form_strs.iter() {
+            v.push(item.as_str());
+        }
+
+        let s = v.join("\n");
+        write!(f, "{}", s)?;
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct InstructionForm {
     pub gas_name: Option<String>,
     pub go_name: Option<String>,
     pub encoding: String,
     pub operands: Vec<Operand>,
+}
+
+impl Display for InstructionForm {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        if let Some(val) = &self.gas_name {
+            s += &format!("*GAS*: {} | ", val);
+        }
+        if let Some(val) = &self.go_name {
+            s += &format!("*GO*: {} | ", val);
+        }
+
+        // get rid of trailing " | "
+        if !s.is_empty() {
+            s = format!("- {}\n\n", &s[..s.len() - 3]);
+        }
+
+        // Operands
+        let operands_str: String = self
+            .operands
+            .iter()
+            .map(|op| {
+                let mut s = format!("  + {:<8}", format!("[{}]", op.op_type.as_ref()));
+                if let Some(input) = op.input {
+                    s += &format!(" input = {:<5} ", input)
+                }
+                if let Some(output) = op.output {
+                    s += &format!(" output = {:<5}", output)
+                }
+
+                s
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+        s = s + &operands_str + "\n";
+
+        write!(f, "{}", s)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]

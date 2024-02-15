@@ -64,7 +64,7 @@ fn main_loop(
                             Some(instr) => Some(Hover {
                                 contents: HoverContents::Markup(MarkupContent {
                                     kind: MarkupKind::Markdown,
-                                    value: "Hello, LSP!".to_string(), //format!("{}", instr),
+                                    value: format!("{}", instr),
                                 }),
                                 range: None,
                             }),
