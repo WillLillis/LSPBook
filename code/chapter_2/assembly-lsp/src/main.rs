@@ -6,8 +6,8 @@ use assembly_lsp::{
 use log::info;
 use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
 use lsp_types::{
-    request::HoverRequest, Hover, HoverContents, InitializeParams, MarkupContent, MarkupKind,
-    ServerCapabilities,
+    request::HoverRequest, Hover, HoverContents, HoverProviderCapability, InitializeParams,
+    MarkupContent, MarkupKind, ServerCapabilities,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -21,8 +21,11 @@ fn main() -> anyhow::Result<()> {
     // also be implemented to use sockets or HTTP.
     let (connection, io_threads) = Connection::stdio();
 
+    let hover_provider = Some(HoverProviderCapability::Simple(true));
+
     // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
     let server_capabilities = serde_json::to_value(&ServerCapabilities {
+        hover_provider,
         ..Default::default()
     })
     .unwrap();

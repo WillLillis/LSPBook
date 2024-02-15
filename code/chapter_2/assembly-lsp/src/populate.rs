@@ -1,4 +1,4 @@
-use crate::instruction::{Operand, OperandType, Instruction, InstructionForm};
+use crate::instruction::{Arch, Instruction, InstructionForm, Operand, OperandType};
 use std::collections::HashMap;
 
 use std::str;
@@ -19,7 +19,7 @@ pub fn populate_instructions(xml_contents: &str) -> anyhow::Result<HashMap<Strin
     let mut reader = Reader::from_str(xml_contents);
     reader.trim_text(true);
 
-    // instruction and instruction form that are currently under construction
+    let mut arch: Option<Arch> = None;
     let mut curr_instruction = Instruction::default();
     let mut curr_instruction_form = InstructionForm::default();
 
@@ -29,9 +29,19 @@ pub fn populate_instructions(xml_contents: &str) -> anyhow::Result<HashMap<Strin
             // start event ------------------------------------------------------------------------
             Ok(Event::Start(ref e)) => {
                 match e.name() {
+                    QName(b"InstructionSet") => {
+                        for attr in e.attributes() {
+                            let Attribute { key, value } = attr.unwrap();
+                            if let Ok("name") = str::from_utf8(key.into_inner()) {
+                                arch = Arch::from_str(unsafe { str::from_utf8_unchecked(&value) })
+                                    .ok();
+                            }
+                        }
+                    }
                     QName(b"Instruction") => {
                         // start of a new instruction
                         curr_instruction = Instruction::default();
+                        curr_instruction.arch = arch;
 
                         // iterate over the attributes
                         for attr in e.attributes() {

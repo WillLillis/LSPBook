@@ -253,7 +253,7 @@ Great! Now we have a bunch of data in our xml file, and we have some places to p
 
 \begin{lstlisting}[language=rust]
 /* src/populate.rs */
-use crate::instruction::{Operand, OperandType, Instruction, InstructionForm};
+use crate::instruction::{Arch, Instruction, InstructionForm, Operand, OperandType};
 use std::collections::HashMap;
 
 use std::str;
@@ -274,7 +274,7 @@ pub fn populate_instructions(xml_contents: &str) -> anyhow::Result<HashMap<Strin
     let mut reader = Reader::from_str(xml_contents);
     reader.trim_text(true);
 
-    // instruction and instruction form that are currently under construction
+    let mut arch: Option<Arch> = None;
     let mut curr_instruction = Instruction::default();
     let mut curr_instruction_form = InstructionForm::default();
 
@@ -284,9 +284,19 @@ pub fn populate_instructions(xml_contents: &str) -> anyhow::Result<HashMap<Strin
             // start event ------------------------------------------------------------------------
             Ok(Event::Start(ref e)) => {
                 match e.name() {
+                    QName(b"InstructionSet") => {
+                        for attr in e.attributes() {
+                            let Attribute { key, value } = attr.unwrap();
+                            if let Ok("name") = str::from_utf8(key.into_inner()) {
+                                arch = Arch::from_str(unsafe { str::from_utf8_unchecked(&value) })
+                                    .ok();
+                            }
+                        }
+                    }
                     QName(b"Instruction") => {
                         // start of a new instruction
                         curr_instruction = Instruction::default();
+                        curr_instruction.arch = arch;
 
                         // iterate over the attributes
                         for attr in e.attributes() {
@@ -594,25 +604,42 @@ pub fn get_word_from_file_params(
 }
 \end{lstlisting}
 
-The details here are a bit messy, but the overall picture should be very straightforward. We'll pass the \texttt{TextDocumentPositionParams} object we got as part of our hover request parameters to \texttt{get\_word\_from\_file\_params()}. This function will use the params to read the appropriate file from disk. The relevant line is grabbed, and from there we can use \texttt{find\_word\_at\_pos()} to return whatever ``word" is under the cursor. In this case, a word is simply whatever contiguous alphanumeric characters (and underscores) are under the cursor. Side note but Rust's support for iterators is really excellent. Now that I've done my mandatory shilling, let's use our new code! We can check exactly when we receive a hover request! We can get the word under the cursor for
+The details here are a bit messy, but the overall picture should be very straightforward. We'll pass the \texttt{TextDocumentPositionParams} object we got as part of our hover request parameters to \texttt{get\_word\_from\_file\_params()}. This function will use the params to read the appropriate file from disk. The relevant line is grabbed, and from there we can use \texttt{find\_word\_at\_pos()} to return whatever ``word" is under the cursor. In this case, a word is simply whatever contiguous alphanumeric characters (and underscores) are under the cursor. Side note but Rust's support for iterators is really excellent. Now that I've done my mandatory shilling, let's use our new code! We communicated our server's hover capabilities to the language client! We can check exactly when we receive a hover request! We can get the word under the cursor for
 the hover request! We can search our hashmap of instructions for that word! We can send back...wait, what are we supposed to send back?
 
 \begin{lstlisting}[language=rust]
 /* src/main.rs */
-use std::collections::HashMap;
+...use std::collections::HashMap;
 
 use assembly_lsp::{
     instruction::Instruction, lsp::get_word_from_file_params, populate::populate_instructions,
 };
 use log::info;
-use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Reponse};
+use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
 use lsp_types::{
-    request::HoverRequest, Hover, HoverContents, InitializeParams, MarkupContent, MarkupKind,
-    ServerCapabilities,
+    request::HoverRequest, Hover, HoverContents, HoverProviderCapability, InitializeParams,
+    MarkupContent, MarkupKind, ServerCapabilities,
 };
 
-
 fn main() -> anyhow::Result<()> {
+    // Set up logging. Because `stdio_transport` gets a lock on stdout and stdin, we must have our
+    // logging only write out to stderr.
+    flexi_logger::Logger::try_with_str("info")?.start()?;
+
+    info!("Starting assembly-lsp");
+
+    // Create the transport. Includes the stdio (stdin and stdout) versions but this could
+    // also be implemented to use sockets or HTTP.
+    let (connection, io_threads) = Connection::stdio();
+
+    let hover_provider = Some(HoverProviderCapability::Simple(true));
+
+    // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
+    let server_capabilities = serde_json::to_value(&ServerCapabilities {
+        hover_provider,
+        ..Default::default()
+    })
+    .unwrap();
 ...
 
 fn main_loop(
@@ -730,8 +757,7 @@ export interface MarkupContent {
 }
 \end{lstlisting}
 
-Let's take advantage of this neat Markdown integration! All we really need to do is supply a \texttt{String} containing our Markdown content. Adding the appropriate code
-to our event loop, we can again use the types provided by \texttt{lsp\_types} to create a \texttt{Hover} response. This struct is then serialized to transmit via RPC as our response object with our call to \texttt{serde\_json::to\_value()}. After that, we send it off! 
+Let's take advantage of this neat Markdown integration! All we really need to do is supply a \texttt{String} containing our Markdown content. Adding the appropriate code to our event loop, we can again use the types provided by \texttt{lsp\_types} to create a \texttt{Hover} response. This struct is then serialized to transmit via RPC as our response object with our call to \texttt{serde\_json::to\_value()}. After that, we send it off! 
 
 \begin{lstlisting}[language=rust]
 /* src/main.rs */
@@ -848,7 +874,7 @@ impl Display for InstructionForm {
 }
 \end{lstlisting}
 
-Now that we've taken care of the \texttt{Display} trait, displaying our documentation is as simple as adding a single call to the \texttt{format!()} macro..
+Now that we've taken care of the \texttt{Display} trait, displaying our documentation is as simple as adding a single call to the \texttt{format!()} macro...
 
 \begin{lstlisting}[language=rust]
 /* src/main.rs */
@@ -864,7 +890,10 @@ let resp = match x86_instrs.get(&word) {
 };
 \end{lstlisting}
 
-Let's test it out!
+Let's test it out! We should now see some documentation when we hover over some of the instructions in our test file, like so
+
+% screenshot here
+
 % try it out, screenshots, encourage reader to try out different formatting, etc.
 
 % Fix bug with missing associated names
